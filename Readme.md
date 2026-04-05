@@ -17,7 +17,11 @@ Hookfire is a Go backend project using:
 
 ## Environment Variables
 
-Create a `.env` file in the project root.
+Copy `.env.example` to `.env` and update values for your local database.
+
+```bash
+cp .env.example .env
+```
 
 Example:
 
