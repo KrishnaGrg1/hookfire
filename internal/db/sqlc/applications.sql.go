@@ -31,3 +31,94 @@ func (q *Queries) CreateApplication(ctx context.Context, arg CreateApplicationPa
 	)
 	return i, err
 }
+
+const deleteApplication = `-- name: DeleteApplication :exec
+delete from applications
+where id = $1
+`
+
+func (q *Queries) DeleteApplication(ctx context.Context, id int64) error {
+	_, err := q.db.Exec(ctx, deleteApplication, id)
+	return err
+}
+
+const getApplicationByID = `-- name: GetApplicationByID :one
+select id, name, api_key, created_at from applications
+where id = $1
+`
+
+func (q *Queries) GetApplicationByID(ctx context.Context, id int64) (Application, error) {
+	row := q.db.QueryRow(ctx, getApplicationByID, id)
+	var i Application
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.ApiKey,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getApplicationByapikey = `-- name: GetApplicationByapikey :one
+select id, name, api_key, created_at from applications 
+where api_key = $1
+`
+
+func (q *Queries) GetApplicationByapikey(ctx context.Context, apiKey string) (Application, error) {
+	row := q.db.QueryRow(ctx, getApplicationByapikey, apiKey)
+	var i Application
+	err := row.Scan(
+		&i.ID,
+		&i.Name,
+		&i.ApiKey,
+		&i.CreatedAt,
+	)
+	return i, err
+}
+
+const getApplications = `-- name: GetApplications :many
+select id, name, api_key, created_at from applications
+order by created_at desc
+`
+
+func (q *Queries) GetApplications(ctx context.Context) ([]Application, error) {
+	rows, err := q.db.Query(ctx, getApplications)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Application
+	for rows.Next() {
+		var i Application
+		if err := rows.Scan(
+			&i.ID,
+			&i.Name,
+			&i.ApiKey,
+			&i.CreatedAt,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const updateApplication = `-- name: UpdateApplication :exec
+update applications
+set name = $1, api_key = $2
+where id = $3
+`
+
+type UpdateApplicationParams struct {
+	Name   string `json:"name"`
+	ApiKey string `json:"api_key"`
+	ID     int64  `json:"id"`
+}
+
+func (q *Queries) UpdateApplication(ctx context.Context, arg UpdateApplicationParams) error {
+	_, err := q.db.Exec(ctx, updateApplication, arg.Name, arg.ApiKey, arg.ID)
+	return err
+}

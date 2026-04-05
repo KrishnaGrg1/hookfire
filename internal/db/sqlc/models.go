@@ -14,3 +14,32 @@ type Application struct {
 	ApiKey    string             `json:"api_key"`
 	CreatedAt pgtype.Timestamptz `json:"created_at"`
 }
+
+type DeliveryAttempt struct {
+	ID            int64              `json:"id"`
+	EventID       int64              `json:"event_id"`
+	EndpointID    int64              `json:"endpoint_id"`
+	Status        string             `json:"status"`
+	HttpStatus    pgtype.Int4        `json:"http_status"`
+	AttemptNumber int32              `json:"attempt_number"`
+	NextRetryAt   pgtype.Timestamptz `json:"next_retry_at"`
+	DeliveredAt   pgtype.Timestamptz `json:"delivered_at"`
+	CreatedAt     pgtype.Timestamptz `json:"created_at"`
+}
+
+type Endpoint struct {
+	ID        int64              `json:"id"`
+	AppID     int64              `json:"app_id"`
+	Url       string             `json:"url"`
+	Secret    string             `json:"secret"`
+	IsActive  bool               `json:"is_active"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}
+
+type Event struct {
+	ID        int64              `json:"id"`
+	AppID     int64              `json:"app_id"`
+	EventType string             `json:"event_type"`
+	Payload   []byte             `json:"payload"`
+	CreatedAt pgtype.Timestamptz `json:"created_at"`
+}

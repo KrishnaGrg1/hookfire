@@ -4,32 +4,30 @@ import (
 	"context"
 	"log"
 	"net/http"
-	"os"
 
-	"github.com/go-chi/chi/v5"
-	"github.com/go-chi/chi/v5/middleware"
-	"github.com/jackc/pgx/v5"
-	"github.com/joho/godotenv"
+	"github.com/KrishnaGrg1/hookfire/internal/api"
+	"github.com/KrishnaGrg1/hookfire/internal/config"
+	"github.com/KrishnaGrg1/hookfire/internal/store"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 func main() {
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env")
-	}
+	cfg := config.Load()
 
-	db, err := pgx.Connect(context.Background(), os.Getenv("GOOSE_DBSTRING"))
+	pool, err := pgxpool.New(context.Background(), cfg.DB_URL)
 	if err != nil {
 		log.Fatal("Cannot connect to database:", err)
 	}
-	defer db.Close(context.Background())
+	defer pool.Close()
 
+	if err := pool.Ping((context.Background())); err != nil {
+		log.Fatal("Cannot ping database", err)
+	}
 	log.Println("Connected to database")
 
-	r := chi.NewRouter()
-	r.Use(middleware.Logger)
-	r.Get("/", func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("Hello, Hookfire"))
-	})
+	s := store.New(pool)
+	router := api.NewRouter(s)
 
-	http.ListenAndServe(":"+os.Getenv("PORT"), r)
+	log.Printf("Server running on port %s", cfg.Port)
+	http.ListenAndServe(":"+cfg.Port, router)
 }

@@ -1,11 +1,12 @@
 -- +goose Up
-CREATE TABLE events (
+CREATE TABLE endpoints (
   id         BIGSERIAL PRIMARY KEY,
   app_id     BIGINT NOT NULL REFERENCES applications(id) ON DELETE CASCADE,
-  event_type TEXT NOT NULL,
-  payload    JSONB NOT NULL DEFAULT '{}',
+  url        TEXT NOT NULL,
+  secret     TEXT NOT NULL,
+  is_active  BOOLEAN NOT NULL DEFAULT true,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 
 -- +goose Down
-DROP TABLE IF EXISTS events;
+DROP TABLE IF EXISTS endpoints;

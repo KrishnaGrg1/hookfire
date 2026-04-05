@@ -10,6 +10,20 @@ import (
 
 type Querier interface {
 	CreateApplication(ctx context.Context, arg CreateApplicationParams) (Application, error)
+	CreateAttempt(ctx context.Context, arg CreateAttemptParams) (DeliveryAttempt, error)
+	CreateEndpoint(ctx context.Context, arg CreateEndpointParams) (Endpoint, error)
+	CreateEvent(ctx context.Context, arg CreateEventParams) (Event, error)
+	DeleteApplication(ctx context.Context, id int64) error
+	DeleteEndpoint(ctx context.Context, arg DeleteEndpointParams) error
+	GetApplicationByID(ctx context.Context, id int64) (Application, error)
+	GetApplicationByapikey(ctx context.Context, apiKey string) (Application, error)
+	GetApplications(ctx context.Context) ([]Application, error)
+	GetEndpointByID(ctx context.Context, id int64) (Endpoint, error)
+	GetEventByID(ctx context.Context, id int64) (Event, error)
+	ListAttemptsByEvent(ctx context.Context, eventID int64) ([]DeliveryAttempt, error)
+	ListEndpointsByApp(ctx context.Context, appID int64) ([]Endpoint, error)
+	ListEventsByApp(ctx context.Context, appID int64) ([]Event, error)
+	UpdateApplication(ctx context.Context, arg UpdateApplicationParams) error
 }
 
 var _ Querier = (*Queries)(nil)
