@@ -37,22 +37,39 @@ Note: The app currently connects using `GOOSE_DBSTRING`.
 
 ## Database Migrations (Goose)
 
-Create a new migration:
+1. Create a new migration file:
 
 ```bash
 goose -s create create_<table_or_change_name> sql
 ```
 
-Apply all pending migrations:
+2. Open the generated file in `migrations/` and write your SQL under the Goose sections (`-- +goose Up` and `-- +goose Down`).
+
+3. Apply all pending migrations to the database:
 
 ```bash
 goose up
 ```
 
-Check migration status:
+4. Verify migration status:
 
 ```bash
 goose status
+```
+
+Example migration file content:
+
+```sql
+-- +goose Up
+CREATE TABLE IF NOT EXISTS applications (
+	id BIGSERIAL PRIMARY KEY,
+	name TEXT NOT NULL,
+	api_key TEXT UNIQUE NOT NULL,
+	created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- +goose Down
+DROP TABLE IF EXISTS applications;
 ```
 
 ## SQL Queries and Code Generation (sqlc)
