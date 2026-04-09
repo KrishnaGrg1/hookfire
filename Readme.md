@@ -61,17 +61,14 @@ GOOSE_MIGRATION_DIR=./migrations
 
 Note: The app currently connects using `GOOSE_DBSTRING`.
 
-## Getting Started
+## Run the Application
 
 ```bash
-# Start dependencies
-docker-compose up -d
-
 # Run migrations
 goose -dir migrations postgres "$DATABASE_URL" up
 
 # Start server
-go run cmd/main.go
+go run ./cmd
 ```
 
 ## Database Migrations (Goose)
@@ -130,12 +127,6 @@ sqlc generate
 ```
 
 Generated files are written to `internal/db/sqlc`.
-
-## Run the Application
-
-```bash
-go run ./cmd
-```
 
 Server starts on `PORT` and exposes:
 
