@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	db "github.com/KrishnaGrg1/hookfire/internal/db/sqlc"
+	"github.com/KrishnaGrg1/hookfire/internal/helper"
 	"github.com/KrishnaGrg1/hookfire/internal/store"
 )
 
@@ -32,17 +33,17 @@ func (h *ApplicationHanlder) Create(w http.ResponseWriter, r *http.Request) {
 		Name string `json:"name"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&input); err != nil {
-		http.Error(w, "invalid body", http.StatusBadRequest)
+		helper.Error(w, http.StatusBadRequest, "Invalid request body", "VALIDATION_001", "Request body must be valid JSON")
 		return
 	}
 	if input.Name == "" {
-		http.Error(w, "name is required", http.StatusBadRequest)
+		helper.Error(w, http.StatusBadRequest, "Validation failed", "VALIDATION_002", "name is required")
 		return
 	}
 	// 2. Generate API key
 	apiKey, err := generateApiKey()
 	if err != nil {
-		http.Error(w, "failed to generate api key", http.StatusInternalServerError)
+		helper.Error(w, http.StatusInternalServerError, "Failed to create application", "INTERNAL_001", "Could not generate API key")
 		return
 	}
 	// 3. Save to database using sqlc generated code
@@ -51,11 +52,9 @@ func (h *ApplicationHanlder) Create(w http.ResponseWriter, r *http.Request) {
 		ApiKey: apiKey,
 	})
 	if err != nil {
-		http.Error(w, "failed to create application", http.StatusInternalServerError)
+		helper.Error(w, http.StatusInternalServerError, "Failed to create application", "INTERNAL_002", "Database insert failed")
 		return
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(app)
+	helper.Success(w, http.StatusCreated, "Application created successfully", app)
 }

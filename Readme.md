@@ -1,12 +1,38 @@
 
 # Hookfire
 
-Hookfire is a Go backend project using:
+A webhook delivery engine built in Go. Receives events and reliably delivers them to subscriber URLs with automatic retries and exponential backoff.
 
-- PostgreSQL
-- Goose for database migrations
-- sqlc for type-safe query code generation
-- Chi for HTTP routing
+## Why Go
+
+| | Hookfire (Go) | Node.js equivalent |
+|---|---|---|
+| Memory per worker | ~2KB | ~1MB |
+| 1000 concurrent deliveries | ~10MB RAM | ~500MB RAM |
+| Deployment | Single 8MB binary | 400MB with node_modules |
+
+## Architecture
+
+```
+Client -> POST /api/v1/events
+					 |
+					 +-- Save to PostgreSQL
+					 +-- Push to Redis queue
+										|
+							 Worker pool (goroutines)
+										|
+							POST to subscriber URLs
+										|
+					 success -> log
+					 failure -> retry with backoff
+```
+
+## Stack
+
+- Go + Chi - HTTP server
+- PostgreSQL + sqlc - persistent storage
+- Redis - job queue
+- Goose - migrations
 
 ## Prerequisites
 
@@ -34,6 +60,19 @@ GOOSE_MIGRATION_DIR=./migrations
 ```
 
 Note: The app currently connects using `GOOSE_DBSTRING`.
+
+## Getting Started
+
+```bash
+# Start dependencies
+docker-compose up -d
+
+# Run migrations
+goose -dir migrations postgres "$DATABASE_URL" up
+
+# Start server
+go run cmd/main.go
+```
 
 ## Database Migrations (Goose)
 
@@ -101,6 +140,58 @@ go run ./cmd
 Server starts on `PORT` and exposes:
 
 - `GET /` -> `Hello, Hookfire`
+
+## API
+
+```bash
+# Create an application
+curl -X POST http://localhost:8080/api/v1/applications \
+	-H "Content-Type: application/json" \
+	-d '{"name": "my app"}'
+
+# Register a subscriber endpoint
+curl -X POST http://localhost:8080/api/v1/endpoints \
+	-H "Authorization: Bearer hf_yourkey" \
+	-H "Content-Type: application/json" \
+	-d '{"url": "https://yourapp.com/webhooks"}'
+
+# Send an event
+curl -X POST http://localhost:8080/api/v1/events \
+	-H "Authorization: Bearer hf_yourkey" \
+	-H "Content-Type: application/json" \
+	-d '{"event_type": "payment.success", "payload": {"amount": 500}}'
+```
+
+## Verifying Signatures
+
+Every delivery includes a `X-Hookfire-Signature` header. Verify it:
+
+```go
+mac := hmac.New(sha256.New, []byte(endpointSecret))
+mac.Write(payload)
+expected := "sha256=" + hex.EncodeToString(mac.Sum(nil))
+valid := hmac.Equal([]byte(expected), []byte(receivedSignature))
+```
+
+## Retry Policy
+
+| Attempt | Delay |
+|---|---|
+| 1 | 10s |
+| 2 | 20s |
+| 3 | 40s |
+| 4 | 80s |
+| 5 | Dead letter |
+
+## Push to GitHub
+
+```bash
+git init
+git add .
+git commit -m "initial: webhook delivery engine"
+git remote add origin https://github.com/KrishnaGrg1/hookfire.git
+git push -u origin main
+```
 
 ## Common Errors
 

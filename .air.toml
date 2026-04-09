@@ -1,0 +1,22 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  # This compiles your cmd/main.go into a runnable file in /tmp
+  cmd = "go build -o ./tmp/main ./cmd/main.go"
+  bin = "./tmp/main"
+  # This tells Air to watch your internal logic and your entry point
+  include_dir = ["cmd", "internal"]
+  include_ext = ["go", "tpl", "tmpl", "html", "env"]
+  exclude_dir = ["assets", "tmp", "vendor", "test"]
+  delay = 1000 # Wait 1s after save to rebuild (saves CPU)
+  stop_on_error = true
+
+[log]
+  time = true
+
+[color]
+  main = "magenta"
+  watcher = "cyan"
+  build = "yellow"
+  runner = "green"
