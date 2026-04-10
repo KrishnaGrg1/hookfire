@@ -65,7 +65,9 @@ Note: The app currently connects using `GOOSE_DBSTRING`.
 
 ```bash
 # Run migrations
-goose -dir migrations postgres "$DATABASE_URL" up
+GOOSE_DRIVER=postgres \
+GOOSE_DBSTRING=DATABASE_URL \
+goose -dir migrations up
 
 # Start server
 go run ./cmd
@@ -153,16 +155,6 @@ curl -X POST http://localhost:8080/api/v1/events \
 	-d '{"event_type": "payment.success", "payload": {"amount": 500}}'
 ```
 
-## Verifying Signatures
-
-Every delivery includes a `X-Hookfire-Signature` header. Verify it:
-
-```go
-mac := hmac.New(sha256.New, []byte(endpointSecret))
-mac.Write(payload)
-expected := "sha256=" + hex.EncodeToString(mac.Sum(nil))
-valid := hmac.Equal([]byte(expected), []byte(receivedSignature))
-```
 
 ## Retry Policy
 
@@ -174,14 +166,61 @@ valid := hmac.Equal([]byte(expected), []byte(receivedSignature))
 | 4 | 80s |
 | 5 | Dead letter |
 
-## Push to GitHub
+## Docker
 
+1. Build the image (or skip and pull from Docker Hub)
 ```bash
-git init
-git add .
-git commit -m "initial: webhook delivery engine"
-git remote add origin https://github.com/KrishnaGrg1/hookfire.git
-git push -u origin main
+docker build -t <image_name>:<tag> .
+```
+If you skipped the build, pull from Docker Hub instead:
+```bash
+docker pull krishnagrg/hookfire:latest
+```
+
+2. Create network
+```bash
+docker network create hooknet
+```
+
+3. Run PostgreSQL
+```bash
+docker run -d \
+  --name postgres \
+  --network hooknet \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=pass123 \
+  -e POSTGRES_DB=hookfire \
+  -p 5432:5432 \
+  postgres:16-alpine
+```
+
+4. Run Redis
+```bash
+docker run -d \
+  --name redis \
+  --network hooknet \
+  -p 6379:6379 \
+  redis:7-alpine
+```
+
+5. Run migrations (from your host)
+```bash
+GOOSE_DRIVER=postgres \
+GOOSE_DBSTRING="postgres://postgres:pass123@localhost:5432/hookfire?sslmode=disable" 
+goose -dir migrations up
+```
+
+6. Run Hookfire
+```bash
+docker run --rm -p 8080:8080 \
+  --network hooknet \
+  -e PORT=8080 \
+  -e GOOSE_DRIVER=postgres \
+  -e GOOSE_DBSTRING="postgres://postgres:pass123@postgres:5432/hookfire?sslmode=disable" \
+  -e GOOSE_MIGRATION_DIR=/app/migrations \
+  -e REDIS_URL="redis://redis:6379" \
+  -e WORKER_COUNT=10 \
+  <image_name>:<tag>
 ```
 
 ## Common Errors

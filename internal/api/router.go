@@ -20,6 +20,12 @@ func NewRouter(s *store.Store, q *queue.Queue) http.Handler {
 
 	appHandler := handler.NewApplicationHanlder(s)
 	endpointHandler := handler.NewEndpointHanlder(s, q)
+	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(map[string]string{
+			"message": "health is good",
+		})
+	})
 	eventHandler := handler.NewEventHandler(s, q)
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Post("/applications", appHandler.Create)
