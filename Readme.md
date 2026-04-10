@@ -168,7 +168,16 @@ curl -X POST http://localhost:8080/api/v1/events \
 
 ## Docker
 
-1. Build the image (or skip and pull from Docker Hub)
+Docker images run migrations automatically on startup.
+
+### Option A: Docker Compose (local dev)
+
+```bash
+docker compose up --build
+```
+
+### Option B: Docker run (build or pull)
+1. Build the image (Dockerfile is only for building)
 ```bash
 docker build -t <image_name>:<tag> .
 ```
@@ -181,12 +190,16 @@ docker pull krishnagrg/hookfire:latest
 ```bash
 docker network create hooknet
 ```
-
-3. Run PostgreSQL
+3. Create volume
+```bash
+docker volume create pgdata
+``` 
+4. Run PostgreSQL
 ```bash
 docker run -d \
   --name postgres \
   --network hooknet \
+  -v pgdata:/var/lib/postgresql/data \
   -e POSTGRES_USER=postgres \
   -e POSTGRES_PASSWORD=pass123 \
   -e POSTGRES_DB=hookfire \
@@ -194,7 +207,7 @@ docker run -d \
   postgres:16-alpine
 ```
 
-4. Run Redis
+5. Run Redis
 ```bash
 docker run -d \
   --name redis \
@@ -202,14 +215,6 @@ docker run -d \
   -p 6379:6379 \
   redis:7-alpine
 ```
-
-5. Run migrations (from your host)
-```bash
-GOOSE_DRIVER=postgres \
-GOOSE_DBSTRING="postgres://postgres:pass123@localhost:5432/hookfire?sslmode=disable" 
-goose -dir migrations up
-```
-
 6. Run Hookfire
 ```bash
 docker run --rm -p 8080:8080 \

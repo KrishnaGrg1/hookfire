@@ -1,22 +1,27 @@
 package handler
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net/http"
+	"time"
 
 	db "github.com/KrishnaGrg1/hookfire/internal/db/sqlc"
 	"github.com/KrishnaGrg1/hookfire/internal/helper"
+	"github.com/KrishnaGrg1/hookfire/internal/queue"
 	"github.com/KrishnaGrg1/hookfire/internal/store"
 )
 
 type ApplicationHanlder struct {
 	store *store.Store
+	queue *queue.Queue
 }
 
-func NewApplicationHanlder(s *store.Store) *ApplicationHanlder {
-	return &ApplicationHanlder{store: s}
+func NewApplicationHanlder(s *store.Store, q *queue.Queue) *ApplicationHanlder {
+	return &ApplicationHanlder{store: s, queue: q}
 }
 
 func generateApiKey() (string, error) {
@@ -55,6 +60,11 @@ func (h *ApplicationHanlder) Create(w http.ResponseWriter, r *http.Request) {
 		helper.Error(w, http.StatusInternalServerError, "Failed to create application", "INTERNAL_002", "Database insert failed")
 		return
 	}
+
+	cacheKey := fmt.Sprintf("app:apikey:%s", app.ApiKey)
+	go func() {
+		h.queue.SetCache(context.Background(), cacheKey, app, 10*time.Minute)
+	}()
 
 	helper.Success(w, http.StatusCreated, "Application created successfully", app)
 }

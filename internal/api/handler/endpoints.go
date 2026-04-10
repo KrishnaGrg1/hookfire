@@ -42,7 +42,7 @@ func generateSecret() (string, error) {
 func (h *EndpointHandler) Create(w http.ResponseWriter, r *http.Request) {
 	// Get the app from context (set by auth middleware)
 	app := r.Context().Value(mw.AppContextKey).(db.Application)
-
+	cacheKey := fmt.Sprintf("endpoints:app:%d", app.ID)
 	var input struct {
 		URL string `json:"url"`
 	}
@@ -70,7 +70,9 @@ func (h *EndpointHandler) Create(w http.ResponseWriter, r *http.Request) {
 		helper.Error(w, http.StatusInternalServerError, "Failed to create endpoint", "INTERNAL_002", "Database insert failed")
 		return
 	}
-
+	go func() {
+		h.queue.SetCache(context.Background(), cacheKey, endpoint, 10*time.Minute)
+	}()
 	helper.Success(w, http.StatusCreated, "Endpoint created successfully", endpoint)
 }
 
@@ -94,7 +96,6 @@ func (h *EndpointHandler) List(w http.ResponseWriter, r *http.Request) {
 		helper.Error(w, http.StatusInternalServerError, "Failed to fetch endpoints", "INTERNAL_003", "Database query failed")
 		return
 	}
-	time.Sleep(10 * time.Second)
 	go func() {
 		h.queue.SetCache(context.Background(), cacheKey, endpoints, 10*time.Minute)
 	}()

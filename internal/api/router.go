@@ -6,6 +6,7 @@ import (
 
 	"github.com/KrishnaGrg1/hookfire/internal/api/handler"
 	mw "github.com/KrishnaGrg1/hookfire/internal/api/middleware"
+	"github.com/KrishnaGrg1/hookfire/internal/helper"
 	"github.com/KrishnaGrg1/hookfire/internal/queue"
 	"github.com/KrishnaGrg1/hookfire/internal/store"
 	"github.com/go-chi/chi/v5"
@@ -18,7 +19,7 @@ func NewRouter(s *store.Store, q *queue.Queue) http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 
-	appHandler := handler.NewApplicationHanlder(s)
+	appHandler := handler.NewApplicationHanlder(s, q)
 	endpointHandler := handler.NewEndpointHanlder(s, q)
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
@@ -30,12 +31,13 @@ func NewRouter(s *store.Store, q *queue.Queue) http.Handler {
 	r.Route("/api/v1", func(r chi.Router) {
 		r.Post("/applications", appHandler.Create)
 		r.Group(func(r chi.Router) {
-			r.Use(mw.APIKeyAuth(s))
+			r.Use(mw.APIKeyAuth(s, q))
 
 			r.Get("/me", func(w http.ResponseWriter, r *http.Request) {
 				app := r.Context().Value(mw.AppContextKey)
 				w.Header().Set("Content-Type", "application/json")
-				json.NewEncoder(w).Encode(app)
+				// json.NewEncoder(w).Encode(app)
+				helper.Success(w, http.StatusAccepted, "My applicaiton retrieved", app)
 			})
 
 			r.Post("/endpoints", endpointHandler.Create)

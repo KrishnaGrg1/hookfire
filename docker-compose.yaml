@@ -1,0 +1,40 @@
+
+services:
+  postgres:
+    image: postgres:latest
+    # ports:
+    #   - 5432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=my_secret_password
+      - POSTGRES_DB=hookfire
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    restart: always
+    
+  redis:
+    image: redis:latest
+    # ports:
+    #   - 6379:6379
+    restart: always
+
+  user_app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+
+    environment:
+      - GOOSE_DBSTRING=postgres://postgres:my_secret_password@postgres:5432/hookfire?sslmode=disable
+      - REDIS_URL=redis://redis:6379
+      - GOOSE_DRIVER=postgres
+      - WORKER_COUNT=10
+    
+    ports:
+      - 8080:8080
+    depends_on:
+      - postgres
+      - redis
+    restart: always
+
+volumes:
+  postgres_data:

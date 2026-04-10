@@ -51,6 +51,8 @@ RUN apk add --no-cache ca-certificates tzdata
 COPY go.mod go.sum ./
 RUN go mod download
 
+RUN go install github.com/pressly/goose/v3/cmd/goose@v3.27.0
+
 COPY . .
 
 RUN CGO_ENABLED=0 go build -o hookfire ./cmd
@@ -62,7 +64,12 @@ WORKDIR /app
 RUN apk add --no-cache ca-certificates tzdata
 
 COPY --from=builder /app/hookfire .
+COPY --from=builder /go/bin/goose /app/goose
+COPY migrations /app/migrations
+COPY entrypoint.sh /app/entrypoint.sh
+
+RUN chmod +x /app/entrypoint.sh
 
 EXPOSE 8080
 
-CMD ["./hookfire"]
+ENTRYPOINT ["/app/entrypoint.sh"]
